@@ -1,0 +1,565 @@
+---
+title: "Extra"
+author: "Johann S. Cárdenas E - 1053852564"
+date: "June 2, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(stringr)
+```
+
+```{r}
+# leemos los datos como siempre
+data_sad <- read.csv("data.csv")
+data_fine <- data_sad
+```
+
+```{r}
+# creamos una funcion para ahorrar algo de codigo
+año <- function(my.string,expre){
+  # mandamos la string y la expresion regular
+  #mas info al respecto: https://rstudio-pubs-static.s3.amazonaws.com/74603_76cd14d5983f47408fdf0b323550b846.html
+    p <- str_extract(my.string, expre)
+    # reemplazamos todo por lo que retornemos en P
+    str_replace_all(my.string, "Periodo_...._." , p)
+}
+```
+
+
+```{r}
+library(data.table)
+# una belleza de librería
+# hay que dar crédito; pero se modifica para adaptarla
+# https://stackoverflow.com/questions/37756389/r-convert-multiple-columns-into-single-column 
+setDT(data_fine)
+# con esto creamos solo dos columnas; en una de ellas el nombre de las columnas de periodo_xxxx_x y en otra los datos relacionados
+data_nice<- melt(data_fine, measure.vars  = patterns("^Periodo"),
+      value.name = c("DATOS"), 
+      variable.name = "PERIODO",
+      variable.factor = FALSE,
+      #elimina los NA
+      na.rm = TRUE)
+data_temp <- data_nice
+```
+
+```{r}
+  z <- data_temp$PERIODO
+# en periodo esta lo que necesitamos; por eso tomamos el año y el periodo por aparte
+  data_temp$AÑO <- as.integer(año(z,"20.."))
+  data_temp$PERIODO <- as.integer(año(z,".$"))
+  # los '-' se reemplazan por NA
+  data_temp$DATOS <- as.integer(data_temp$DATOS)
+```
+
+
+
+```{r}
+summary(data_temp)
+```
+```{r}
+library(dplyr)
+```
+
+```{r}
+library(tidyr)
+# eliminando nos NA y 0
+data_mela <- data_temp %>%
+          filter(!is.na(DATOS) & DATOS != 0) %>%
+          droplevels()
+```
+
+```{r}
+summary(data_mela)
+```
+Preguntas para resolver.
+
+1.¿El número de líneas telefónicas fijas en Colombia están disminuyendo entre el 2015 y el 2017?
+
+Desde el año 2015 al 2016 aumentaron mucho; quizá las promociones por parte de los prestadores de servicios; ya que solían incluir el paquete de telefonia fija a un bajo costo; ya que el aumento de la telefonia movil estaba en aumento. No se puede decir lo mismo de 2016 - 2017 va en deadencia.
+```{r}
+library(dplyr)
+resumen <- data_mela %>% 
+           group_by(AÑO) %>%
+           summarise(promedio = mean(DATOS),
+                     desvEst  = sd(DATOS),
+                     sum = sum(DATOS))
+resumen
+```
+
+La representación de los datos de telefonía en general para cada año; tieniendo en cuenta el promedio y la sumatoria de estos; ya que las tres cajas estan similiares, es dificíl identificar las diferencias.
+
+```{r}
+library(ggplot2)
+boxe <- data_mela
+  boxe <- boxe%>% select(AÑO, DATOS)
+ggplot(boxe, aes(x=AÑO, y=DATOS, group=AÑO))+
+    geom_boxplot()+
+    stat_summary(fun.y = "mean",geom = "smooth", 
+                 aes(colour = "mean",group=1),
+                 size = 1) + coord_trans(y="log10")+
+    stat_summary(fun.y = "mean",geom = "point", 
+                 aes(colour = "mean",group=1),
+                 size = 2) + coord_trans(y="log10")+
+    
+      stat_summary(fun.y = "sum",geom = "smooth", 
+                 aes(colour = "sum",group=1),
+                 size = 1) + coord_trans(y="log10")+
+      stat_summary(fun.y = "sum",geom = "point", 
+                 aes(colour = "sum",group=1),
+                 size = 2) + coord_trans(y="log10")
+
+```
+
+2.¿-En qué casos están aumentando? (¿En cuáles departamentos y en qué estrato?)
+
+En primerlugar BOGOTÁ D.C. seguido de VALLE DEL CAUCA y por consiguiente ATLÁNTICO; en los tres ultimos años han crecido muy bien, y más aún de 2016 al 2016; esto significativamente para todos, pero en el caso 2016 - 2107 el aumento es poco para ATLÁNTICO.
+
+En cuanto en estratos, contrario a lo que se pueda pensar; los estratos 2 y 3 estan estrechamente correlacionados en los resultados, los cuales son los mas altos según el estudio; por consiguiente el tercer lugar está reservado para el estrato 4, quien tiene una gran diferencia respescto a nuestros encabezados.
+
+Ahora bien; para refutar lo anterior, se hizo lo siguiente:
+
+```{r}
+boxe2 <- data_mela
+```
+
+Primer resumen; agrupado por segmentos.
+```{r}
+library(dplyr)
+resumen1 <- data_mela %>% 
+           group_by(SEGMENTO) %>%
+           summarise(promedio = mean(DATOS),
+                     desvEst  = sd(DATOS),
+                     sum = sum(DATOS))
+resumen1
+```
+
+Realizamos una gráfica en relación con los datos que se tienen y los departamentos; para lo cual se opta por hacer contraste con la media de estos datos, al tiempo en esta gráfica.
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+# generamos la grafica; seleccionando lo útil
+  boxe2 <- boxe2%>% select(DEPARTAMENTO, DATOS, SEGMENTO, AÑO)
+ggplot(boxe2, aes(y=log10(DATOS), x=DEPARTAMENTO, group=DEPARTAMENTO, angle = 45))+
+    geom_boxplot(aes(colour = DEPARTAMENTO))+
+    scale_colour_discrete(guide=FALSE)+
+    # theme(hjust = 1)+
+    # facet_wrap(~ AÑO, ncol = 3) +
+    # algo de estilos
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    #se resumen los nombres; son muy largos
+    scale_x_discrete(label=abbreviate)+
+    scale_y_discrete(label=abbreviate)+
+      stat_summary(fun.y = "mean",geom = "smooth", 
+                 aes(fill = "Promedio",group=1),
+                 size = 0.5) +
+        stat_summary(fun.y = "mean",geom = "point", 
+                 aes(group=1),
+                 size = 1)+
+  labs(title = "Lineas Telefonícas Por Departamento", y="Datos")+
+  theme(legend.title=element_blank())  
+
+  
+    # geom_smooth(data = resumen1, 
+    #            aes(SEGMENTO, log(promedio), colour = "promedio", group=1),
+    #            size = 1, stat="identity")+
+    #   geom_point(data = resumen1, 
+    #            aes(SEGMENTO, log(promedio), colour = "promedio", group=1),
+    #            size = 2, stat="identity")
+```
+De acuerdo al gráfico, BOGOTÁ D.C. en general tiene las mayores concentraciones de datos; quizá por la facilidad que provee ETB (empresa de telecomunicaciones de bogotá) para tener un servicio de telefonía, pues historícamente es fundamental en el desarrollo de las telecomunicaciones en Colombia.
+
+Para continuar con el estudio, se procede a filtrar datos, primariamente por estrato y de seguido, por departamento.
+
+```{r}
+library(dplyr)
+boxe3 <- data_mela
+# separamos los estratos que nos interesan
+  boxe3 <- boxe3%>% select(DEPARTAMENTO, DATOS, SEGMENTO, AÑO)%>%
+  filter(SEGMENTO %in% "Residencial - Estrato 2" |  SEGMENTO %in% "Residencial - Estrato 3" | SEGMENTO %in% "Residencial - Estrato 4")
+```
+
+Un resumen de lo que se tiene.
+```{r}
+library(dplyr)
+# un anlisis con lo que se tiene
+resumen2 <- boxe3 %>% 
+           group_by(DEPARTAMENTO) %>%
+           summarise(promedio = mean(DATOS),
+                     desvEst  = sd(DATOS),
+                     sum = sum(DATOS),
+                     max = max(DATOS))
+resumen2[order(-resumen2$promedio),] 
+```
+
+Filtro por departamento.
+```{r}
+library(dplyr)
+# separamos los deptos que nos interesan
+  boxe3 <- boxe3%>% select(DEPARTAMENTO, DATOS, SEGMENTO, AÑO)%>%
+  filter(DEPARTAMENTO %in% "BOGOTÁ D.C." |  DEPARTAMENTO %in% "VALLE DEL CAUCA" |DEPARTAMENTO %in% "ATLÁNTICO")
+
+```
+
+Un nuevo resumen después de nuestro filtro; haciendo la agrupación por departamento.
+```{r}
+resumen3 <- boxe3 %>% 
+           group_by(DEPARTAMENTO) %>%
+           summarise(promedio = mean(DATOS),
+                     desvEst  = sd(DATOS),
+                     sum = sum(DATOS),
+                     max = max(DATOS))
+
+resumen3
+```
+Lo anteior, pero esta vez para segmento.
+```{r}
+resumen33 <- boxe3 %>% 
+           group_by(SEGMENTO) %>%
+           summarise(promedio = mean(DATOS),
+                     desvEst  = sd(DATOS),
+                     sum = sum(DATOS),
+                     max = max(DATOS))
+
+resumen33
+```
+
+Teniendo esto, se puede dar paso al estudio en relación con el tiempo, para el caso peridóo 2015 a 2017; segmentado en tres partes. Tal cual se plantea se busca la relacion de los datos y los departamentos para los fragmentos de tiempo.
+
+```{r}
+library(ggplot2)
+
+ggplot(boxe3, aes(y=DATOS, x=DEPARTAMENTO, group=DEPARTAMENTO, angle = 45))+
+    geom_boxplot(aes(colour = DEPARTAMENTO))+
+    facet_wrap(~ AÑO, ncol = 3) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    scale_x_discrete(label=abbreviate)+
+    scale_y_discrete(label=abbreviate)+
+      stat_summary(fun.y = "mean",geom = "smooth", 
+                 aes(colour = "Promedio",group=1),
+                 size = 1) + coord_trans(y="log10")+
+    labs(title = "Lineas Telefonícas Por Período")
+```
+
+Por el mismo orden de ideas, los fragmentos de tiempo, se reemplazan por los 3 estratos que previamente fueron seleccionados.
+```{r}
+library(ggplot2)
+
+ggplot(boxe3, aes(y=DATOS, x=DEPARTAMENTO, group=DEPARTAMENTO, angle = 45))+
+    geom_boxplot(aes(colour = DEPARTAMENTO))+
+    facet_wrap(~ SEGMENTO, ncol = 3) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    scale_x_discrete(label=abbreviate)+
+    scale_y_discrete(label=abbreviate)+
+      stat_summary(fun.y = "mean",geom = "smooth", 
+                 aes(colour = "Promedio",group=1),
+                 size = 1) + coord_trans(y="log10")+
+    labs(title = "Lineas Telefonícas Por Segmento")
+```
+
+(Gráficas a presentar.
+Gráfica que se muestre por departamento el comportamiento del número de líneas telefónicas en el tiempo.)
+
+```{r}
+boxe4 <- data_mela
+```
+
+Se hace un previo resumen para entender la gráfica mejor.
+```{r}
+resumen4 <- boxe4 %>% 
+           group_by(DEPARTAMENTO,AÑO) %>%
+           summarise(promedio = mean(DATOS),
+                     desvEst  = sd(DATOS),
+                     sum = sum(DATOS),
+                     max = max(DATOS))
+
+resumen4[order(-resumen4$promedio),] 
+```
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+# generamos la grafica; seleccionando lo útil
+  boxe4 <- boxe4%>% select(DEPARTAMENTO, DATOS, AÑO)
+ggplot(boxe4, aes(y=logb(DATOS,base=2), x=DEPARTAMENTO, group=DEPARTAMENTO, angle = 45))+
+    geom_boxplot(aes(colour = DEPARTAMENTO))+
+    scale_colour_discrete(guide=FALSE)+
+    # theme(hjust = 1)+
+     facet_wrap(~ AÑO, nrow  = 3) +
+    # algo de estilos
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    #se resumen los nombres; son muy largos
+    scale_x_discrete(label=abbreviate)+
+    scale_y_discrete(label=abbreviate)+
+    stat_summary(fun.y = "max",geom = "smooth", 
+                 aes(colour = "Promedio",group=1),
+                 size = 0.5) +
+      stat_summary(fun.y = "min",geom = "smooth", 
+                 aes(colour = "Promedio",group=1),
+                 size = 0.5)+
+    labs(title = "Lineas Telefonícas Por Departamento En Tiempo", y="Datos en relacion tiempo")
+```
+Gráficas a presentar.
+Gráfica que muestra el comportamiento del número de líneas en el tiempo por estrato.
+```{r}
+boxe5 <- data_mela
+```
+
+Se hace un previo resumen para entender la gráfica mejor.
+```{r}
+resumen5 <- boxe5 %>% 
+           group_by(SEGMENTO,AÑO) %>%
+           summarise(promedio = mean(DATOS),
+                     desvEst  = sd(DATOS),
+                     sum = sum(DATOS),
+                     max = max(DATOS))
+
+resumen5[order(-resumen5$promedio),] 
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+# generamos la grafica; seleccionando lo útil
+  boxe5 <- boxe5%>% select(SEGMENTO, DATOS, AÑO)
+ggplot(boxe5, aes(y=logb(DATOS,base=14), x=SEGMENTO, group=SEGMENTO, angle = 45))+
+    geom_boxplot(aes(colour = SEGMENTO))+
+    scale_colour_discrete(guide=FALSE)+
+    # theme(hjust = 1)+
+     facet_wrap(~ AÑO, nrow  = 3) +
+    # algo de estilos
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    #se resumen los nombres; son muy largos
+    scale_x_discrete(label=abbreviate)+
+    scale_y_discrete(label=abbreviate)+
+    stat_summary(fun.y = "max",geom = "smooth", 
+                 aes(colour = "Promedio",group=1),
+                 size = 0.5) +
+    stat_summary(fun.y = "min",geom = "smooth", 
+                 aes(colour = "Promedio",group=1),
+                 size = 0.5)+  labs(title = "Lineas Telefonícas Por Estrato", y="Datos en relacion tiempo")
+```
+
+Preguntas adicionales.
+¿Cuáles municipio está disminuyendo el número de líneas de manera más fuertemente?
+
+La tendencia está incialmente inclinada para PALMIRA, PEREIRA y GIRARDOT; con una baja en los ultimos tres años de  200887, 140066 y 84344 para cada uno; teniendo PEREIRA, el primer lugar.
+
+
+```{r}
+boxe6 <- data_mela
+```
+
+Agrupamos los datos de acuerdo al año
+
+```{r}
+library(dplyr)
+box2015 <- boxe6 %>% 
+           group_by(MUNICIPIO,AÑO) %>%
+           summarise(sumdos = sum(DATOS))%>%
+  filter(AÑO %in% "2015")
+
+# resumen 2016
+box2016 <- boxe6 %>% 
+           group_by(MUNICIPIO,AÑO) %>%
+           summarise(sumdos = sum(DATOS))%>%
+  filter(AÑO %in% "2016")
+
+
+# resumen 2017
+box2017 <- boxe6 %>% 
+           group_by(MUNICIPIO,AÑO) %>%
+           summarise(sumdos = sum(DATOS))%>%
+  filter(AÑO %in% "2017")
+
+```
+
+```{r}
+box15_16_17 <- NULL
+box15_16<- NULL
+```
+
+
+```{r}
+# similar a la calibración de celulares en el proyeco final se une lo obtendio anteriormente
+box_15_16 <- box2015 %>%
+          select(MUNICIPIO, AÑO, sumdos)%>%
+           inner_join(select(box2016,MUNICIPIO, AÑO, sumdos), 
+                      by = "MUNICIPIO")
+box15_16_17 <- box_15_16 %>%
+           inner_join(select(box2017,MUNICIPIO, AÑO, sumdos), 
+                      by = "MUNICIPIO")
+box15_16_17 <- as.data.frame(box15_16_17)
+```
+
+De acuerdo a la información buscamos posibles datos, en los cuales se haya visto un aumento en el periodo 2015 - 2016. 
+```{r}
+data_deptxy <- box15_16_17 %>%
+            filter(sumdos.x > sumdos.y)
+  data_deptxy$dif <- data_deptxy$sumdos.y - data_deptxy$sumdos
+  data_deptxy
+```
+Al saber esto podemos proceder para verificar qué municipios han decadido en datos para el periodo de 2016-2017.
+```{r} 
+data_deptys <- box15_16_17 %>%
+            filter(sumdos.y > sumdos)
+  data_deptys$dif <- data_deptys$sumdos.y - data_deptys$sumdos
+  arrange(data_deptys, desc(dif))
+```
+
+
+¿En qué combinación de estrato y municipio se presenta un mayor aumento?
+
+MEDELLÍN	Residencial - Estrato 3; presenta la mayor tasa de crecimiento en los ultimos tres años; aunque tambien se codea con el MEDELLÍN	Residencial - Estrato 2.
+```{r}
+library(dplyr)
+box2015ed <- boxe6 %>% 
+           group_by(MUNICIPIO,AÑO,SEGMENTO) %>%
+           summarise(sumdos = sum(DATOS))%>%
+  filter(AÑO %in% "2015")
+
+
+# resumen 2016
+box2016ed <- boxe6 %>% 
+           group_by(MUNICIPIO,AÑO,SEGMENTO) %>%
+           summarise(sumdos = sum(DATOS))%>%
+  filter(AÑO %in% "2016")
+
+
+# resumen 2017
+box2017ed <- boxe6 %>% 
+           group_by(MUNICIPIO,AÑO,SEGMENTO) %>%
+           summarise(sumdos = sum(DATOS))%>%
+  filter(AÑO %in% "2017")
+
+```
+
+```{r}
+box2015ed <- as.data.frame(group_by(box2015ed, SEGMENTO))
+box2016ed <- as.data.frame(group_by(box2016ed, SEGMENTO))
+box2017ed <- as.data.frame(group_by(box2017ed, SEGMENTO))
+```
+
+```{r}
+summary(box2015ed)
+```
+
+
+```{r}
+library(plyr)
+# similar al de la calibración, pero para el caso se debe usar otra función, la anterior no sirvió
+box_15_16ed <- NULL
+box_15_16ed <- merge(box2015ed, box2016ed, all = TRUE, by = "row.names")
+box_15_16_17ed <- merge(box_15_16ed, box2017ed, all = TRUE, by = "row.names")
+```
+```{r}
+# se elimina la redundancia de datos
+box_15_16_17ed$Row.names <-NULL
+box_15_16_17ed$Row.names <-NULL
+```
+
+Se comparan las sumatorias de datos del periodo 2015 - 2016; y se calcula la diferencia, lo cual resulta en cuantos datos aumento para el periodo.
+
+```{r}
+data_deptestra <- box_15_16_17ed %>%
+            filter(sumdos.x <  sumdos.y)
+  d1516 <- data_deptestra$sumdos.y - data_deptestra$sumdos.x
+  data_deptestra$dif_15_16 <- d1516
+  arrange(data_deptestra, desc(dif_15_16))
+```
+Se purga los datos, para darle un mejor orden y coherencia, ademas se tiene la diferencia para 2015 - 2016; 2016 - 2017 y los tres periodos correspondientes, así teniendo un estimado de mayor diferencia lo cual denota una mayor tasa de crecimiento en el lapso temporal.
+
+sumdos: representa el total de datos.
+dif_15_16: diferencia 2015-2016.
+dif_16_17: diferencia 2016-2017.
+dif_15_16_17: suma de diferencias.
+
+```{r}
+data_deptestra <- data_deptestra %>%
+            filter(sumdos.y <  sumdos)
+  d1617 <- data_deptestra$sumdos - data_deptestra$sumdos.y
+  data_deptestra$dif_16_17 <- d1617
+  data_deptestra$dif_15_16_17 <- d1617 + data_deptestra$dif_15_16
+  data_deptestra <- data_deptestra[, -c(1:8)] 
+  data_deptestra$AÑO <- NULL
+  arrange(data_deptestra, desc(dif_15_16_17))
+```
+
+Gráficas adicionales.
+Gráfica que muestre los cinco (5) municipios que mayor aumento presente en número de líneas.
+
+Procedemos a tomar los datos.
+```{r}
+data_mun<- box15_16_17 %>%
+            filter(sumdos.x <  sumdos.y &sumdos.y <  sumdos)
+  d <- data_mun$sumdos.y - data_mun$sumdos.x
+  data_mun$dif_15_16_17 <- d
+  # data_mun <- data_mun[c(1, 5),] 
+  data_mun <- arrange(data_mun, desc(dif_15_16_17))
+  cincomun <- data_mun[c(1:5),] 
+  cincomun
+```
+
+```{r}
+library(ggplot2)
+
+    
+ggplot(cincomun, aes(MUNICIPIO,dif_15_16_17,group=(MUNICIPIO)))+
+    geom_histogram(aes(fill =MUNICIPIO), stat = "identity",alpha = 0.5)+
+  geom_text(aes(label = dif_15_16_17, y = dif_15_16_17-100000), size = 3)+
+  # theme(legend.position = "bottom") + 
+  labs(title = "Aumento De Lineas Por Municipio", y="Aumento")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    scale_x_discrete(label=abbreviate)+
+    scale_y_discrete(label=abbreviate)
+```
+
+Gráfica que muestre los cinco (5) municipios de mayor disminunción teniendo en cuenta el estrato.
+
+Para este caso debemos hacer una modificaciones en los datos que tenianmos agrupado anteriormente.
+```{r}
+data_deptestramin <- box_15_16_17ed %>%
+            filter(sumdos.x >  sumdos.y)
+  d1516 <- data_deptestramin$sumdos.x - data_deptestramin$sumdos.y
+  data_deptestramin$dif_15_16 <- d1516
+  arrange(data_deptestramin, desc(dif_15_16))
+```
+
+Ahora bien, recortamos y deacuamos los datos que se piden.
+
+```{r}
+data_deptestramin <- data_deptestramin %>%
+            filter(sumdos.y  > sumdos)
+  d1617 <- data_deptestramin$sumdos.y - data_deptestramin$sumdos 
+  data_deptestramin$dif_16_17 <- d1617
+  data_deptestramin$dif_15_16_17 <- d1617 + data_deptestramin$dif_15_16
+   data_deptestramin <- data_deptestramin[, -c(1:8)] 
+  data_deptestramin$AÑO <- NULL
+  data_deptestramin <- data_deptestramin[, -c(3:5)] 
+  cincomin <- arrange(data_deptestramin, desc(dif_15_16_17))
+    cincomin <- cincomin[c(1:5),] 
+
+  cincomin
+```
+```{r}
+library(ggplot2)
+
+    
+ggplot(cincomin, aes(SEGMENTO,(dif_15_16_17),group=(MUNICIPIO)))+
+    geom_histogram(aes(fill =MUNICIPIO), stat="identity",alpha = 0.5)+
+  geom_text(aes(label = dif_15_16_17, y = dif_15_16_17-11800), size = 3)+
+   # facet_wrap(~ MUNICIPIO, ncol   = 3) +
+  labs(title = "Disminución De Lineas Por Estrato", y="Numero Decadencia")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    scale_x_discrete(label=abbreviate)+
+    scale_y_discrete(label=abbreviate)
+```
+
+

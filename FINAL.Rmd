@@ -1,0 +1,351 @@
+---
+title: "TRABAJO_FINAL"
+author: "CJNSAJCNAJSC"
+date: "21 de mayo de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(stringr)
+```
+<!-- lee las coordenadas -->
+```{r}
+geo <- read.csv("geo.csv")
+```
+
+
+
+<!-- agrega las coordenasdas -->
+```{r}
+listr1 <- NULL
+b1 <- dir("./R1/")
+
+b1 <- b1[!is.na(str_match(b1, ".csv"))]
+for (i in b1){
+  di <- paste("./R1/",i,sep = "")
+  R1 <- read.csv(di)
+  R1$celular<- sapply(str_split(sapply(str_split(i, "_"), function(x) x[4]),".c"),function(x) x[1])
+  R1$repli <- sapply(str_split(i, "_"), function(x) x[1])
+  R1$cuadricula <- sapply(str_split(i, "_"), function(x) x[3])
+  R1$horario <- sapply(str_split(i, "_"), function(x) x[2])
+    geol <- geo[geo$Name %in% R1$cuadricula,]
+    R1$latitud <- geol$Y
+    R1$longuitud <- geol$X
+  listr1 <- c(listr1,list(R1))
+}
+```
+
+```{r}
+listr2 <- NULL
+b2 <- dir("./R2")
+
+b2 <- b2[!is.na(str_match(b2, ".csv"))]
+for (i in b2){
+  di <- paste("./R2/",i,sep = "")
+  R2 <- read.csv(di)
+  R2$celular<- sapply(str_split(sapply(str_split(i, "_"), function(x) x[4]),".c"),function(x) x[1])
+  R2$repli <- sapply(str_split(i, "_"), function(x) x[1])
+  R2$cuadricula <- sapply(str_split(i, "_"), function(x) x[3])
+  R2$horario <- sapply(str_split(i, "_"), function(x) x[2])
+    geol2 <- geo[geo$Name %in% R2$cuadricula,]
+    R2$latitud <- geol2$Y
+    R2$longuitud <- geol2$X
+  listr2 <- c(listr2,list(R2))
+}
+```
+
+```{r}
+listr3 <- NULL
+b3 <- dir("./R3")
+
+b3 <- b3[!is.na(str_match(b3, ".csv"))]
+for (i in b3){
+  di <- paste("./R3/",i,sep = "")
+  R3 <- read.csv(di)
+  R3$celular<- sapply(str_split(sapply(str_split(i, "_"), function(x) x[4]),".c"),function(x) x[1])
+  R3$repli <- sapply(str_split(i, "_"), function(x) x[1])
+  R3$cuadricula <- sapply(str_split(i, "_"), function(x) x[3])
+  R3$horario <- sapply(str_split(i, "_"), function(x) x[2])
+    geol3 <- geo[geo$Name %in% R3$cuadricula,]
+    R3$latitud <- geol3$Y
+    R3$longuitud <- geol3$X
+  listr3 <- c(listr3,list(R3))
+}
+```
+
+```{r}
+listr4 <- NULL
+b4 <- dir("./R4/")
+
+b4 <- b4[!is.na(str_match(b4, ".csv"))]
+for (i in b4){
+  di <- paste("./R4/",i,sep = "")
+  R4 <- read.csv(di)
+  R4$celular<- sapply(str_split(sapply(str_split(i, "_"), function(x) x[4]),".c"),function(x) x[1])
+  R4$repli <- sapply(str_split(i, "_"), function(x) x[1])
+  R4$cuadricula <- sapply(str_split(i, "_"), function(x) x[3])
+  R4$horario <- sapply(str_split(i, "_"), function(x) x[2])
+    geol4 <- geo[geo$Name %in% R4$cuadricula,]
+    R4$latitud <- geol4$Y
+    R4$longuitud <- geol4$X
+  listr4 <- c(listr4,list(R4))
+}
+```
+
+```{r}
+listr5 <- NULL
+b5 <- dir("./R5/")
+
+b5 <- b5[!is.na(str_match(b5, ".csv"))]
+for (i in b5){
+  di <- paste("./R5/",i,sep = "")
+  R5 <- read.csv(di)
+  R5$celular<- sapply(str_split(sapply(str_split(i, "_"), function(x) x[4]),".c"),function(x) x[1])
+  R5$repli <- sapply(str_split(i, "_"), function(x) x[1])
+  R5$cuadricula <- sapply(str_split(i, "_"), function(x) x[3])
+  R5$horario <- sapply(str_split(i, "_"), function(x) x[2])
+    geol5 <- geo[geo$Name %in% R5$cuadricula,]
+    R5$latitud <- geol5$Y
+    R5$longuitud <- geol5$X
+  listr5 <- c(listr5,list(R5))
+}
+```
+<!-- agrega coordenadas fin -->
+
+<!-- ignorar -->
+```{r}
+for(i in 1:5){
+  a <- paste("b",i,sep = "")
+  b <- paste("R",i,sep = "")
+  cx <- paste("list",i,sep = "")
+  di <- paste("~/Documents/r/Geolocal/R",i,sep = "")
+assign(cx, as.list(NULL))
+assign(b,dir(di))
+assign(a,names(a)[!is.na(str_match(a, ".csv"))])
+}
+```
+<!-- ignorar fin -->
+
+
+
+```{r}
+R1_data <- do.call("rbind", listr1)
+R2_data <- do.call("rbind", listr2)
+R3_data <- do.call("rbind", listr3)
+R4_data <- do.call("rbind", listr4)
+R5_data <- do.call("rbind", listr5)
+```
+
+```{r}
+write.csv(R1_data,file="R1_mess.csv")
+write.csv(R2_data,file="R2_mess.csv")
+write.csv(R3_data,file="R3_mess.csv")
+write.csv(R4_data,file="R4_mess.csv")
+write.csv(R5_data,file="R5_mess.csv")
+```
+
+
+```{r}
+r5_c<-read.csv("R5_mess.csv")
+```
+
+```{r}
+r4_c<-read.csv("R4_mess.csv")
+```
+
+```{r}
+r3_c<-read.csv("R3.mess_csv")
+```
+
+```{r}
+r2_c<-read.csv("R2_mess.csv")
+```
+
+```{r}
+r1_c<-read.csv("R1_mess.csv")
+```
+
+```{r}
+library(dplyr)
+
+```
+
+```{r}
+  R_5_x_seg <- R5_data %>%
+              mutate(timestamp_seg = trunc(timestamp/1000)) %>%
+  group_by(timestamp_seg,celular,repli,cuadricula,horario,latitud,longuitud) %>%              summarise(DecibelProm5 = mean(DecibelSource, na.rm = TRUE),
+                        n = n(), 
+                        na = sum(is.na(DecibelSource)))
+summary(R_5_x_seg)
+table(diff(R_5_x_seg$timestamp_seg))
+```
+
+```{r}
+  R_4_x_seg <- R4_data %>%
+              mutate(timestamp_seg = trunc(timestamp/1000)) %>%
+              group_by(timestamp_seg,celular,repli,cuadricula,horario,latitud,longuitud) %>%
+              summarise(DecibelProm4 = mean(DecibelSource, na.rm = TRUE),
+                        n = n(), 
+                        na = sum(is.na(DecibelSource)))
+summary(R_4_x_seg)
+table(diff(R_4_x_seg$timestamp_seg))
+```
+
+```{r}
+  R_3_x_seg <- R3_data %>%
+              mutate(timestamp_seg = trunc(timestamp/1000)) %>%
+              group_by(timestamp_seg,celular,repli,cuadricula,horario,latitud,longuitud) %>%
+              summarise(DecibelProm3 = mean(DecibelSource, na.rm = TRUE),
+                        n = n(), 
+                        na = sum(is.na(DecibelSource)))
+summary(R_3_x_seg)
+table(diff(R_3_x_seg$timestamp_seg))
+
+```
+
+```{r}
+R_2_x_seg <- R2_data %>%
+              mutate(timestamp_seg = trunc(timestamp/1000)) %>%
+              group_by(timestamp_seg,celular,repli,cuadricula,horario,latitud,longuitud) %>%
+              summarise(DecibelProm2 = mean(DecibelSource, na.rm = TRUE),
+                        n = n(), 
+                        na = sum(is.na(DecibelSource)))
+summary(R_2_x_seg)
+table(diff(R_2_x_seg$timestamp_seg))
+```
+
+```{r}
+R_1_x_seg <- R1_data %>%
+              
+              mutate(timestamp_seg = trunc(timestamp/1000)) %>%
+              group_by(timestamp_seg,celular,repli,cuadricula,horario,latitud,longuitud) %>%
+              summarise(DecibelProm1 = mean(DecibelSource, na.rm = TRUE),
+                        n = n(), 
+                        na = sum(is.na(DecibelSource)))
+summary(R_1_x_seg)
+table(diff(R_1_x_seg$timestamp_seg))
+
+```
+
+
+
+```{r}
+library(dplyr)
+R_5_x_seg <- R_5_x_seg %>%
+             mutate(fecha = as.POSIXct(timestamp_seg, origin="1970-01-01"))
+```
+
+```{r}
+R_4_x_seg <- R_4_x_seg %>%
+             mutate(fecha = as.POSIXct(timestamp_seg, origin="1970-01-01"))
+```
+
+```{r}
+R_3_x_seg <- R_3_x_seg %>%
+             mutate(fecha = as.POSIXct(timestamp_seg, origin="1970-01-01"))
+```
+
+```{r}
+R_2_x_seg <- R_2_x_seg %>%
+             mutate(fecha = as.POSIXct(timestamp_seg, origin="1970-01-01"))
+```
+
+```{r}
+R_1_x_seg <- R_1_x_seg %>%
+             mutate(fecha = as.POSIXct(timestamp_seg, origin="1970-01-01"))
+```
+
+```{r}
+write.csv(R_5_x_seg,file="R5_f.csv")
+```
+
+```{r}
+write.csv(R_4_x_seg,file="R4_f.csv")
+```
+
+```{r}
+write.csv(R_3_x_seg,file="R3.f_csv")
+```
+
+```{r}
+write.csv(R_2_x_seg,file="R2_f.csv")
+```
+
+```{r}
+write.csv(R_1_x_seg,file="R1_f.csv")
+```
+
+```{r}
+library(ggplot2)
+frente <- R_1_x_seg
+frente <- frente%>%
+  select(cuadricula,DecibelProm1)%>%
+  filter(cuadricula %in% paste("C", seq(1, 40, 3), sep = ""))
+
+```
+
+```{r}
+allr <- rbind(R_1_x_seg,R_2_x_seg,R_3_x_seg,R_4_x_seg,R_4_x_seg,R_5_x_seg)
+
+```
+
+
+```{r}
+library(ggplot2)
+frente <- allr
+frente <- frente%>%
+  select(cuadricula,DecibelProm1)%>%
+  filter(cuadricula %in% paste("C", seq(1, 40, 3), sep = ""))
+ frente$cuadricula <- as.character(frente$cuadricula)
+frente$cuadricula <- factor(frente$cuadricula , levels=unique(frente$cuadricula))
+
+p1 <- ggplot(frente, aes(x=cuadricula, y=DecibelProm1)) + 
+  geom_boxplot()
+p1
+```
+
+```{r}
+library(ggplot2)
+medio <- allr
+medio <- medio%>%
+  select(cuadricula,DecibelProm1)%>%
+  filter(cuadricula %in% paste("C", seq(2, 41, 3), sep = ""))
+ medio$cuadricula <- as.character(medio$cuadricula)
+medio$cuadricula <- factor(medio$cuadricula , levels=unique(medio$cuadricula))
+
+p2 <- ggplot(medio, aes(x=cuadricula, y=DecibelProm1)) + 
+  geom_boxplot()
+p2
+```
+
+```{r}
+library(ggplot2)
+atras <- allr
+atras <- atras%>%
+  select(cuadricula,DecibelProm1)%>%
+  filter(cuadricula %in% paste("C", seq(3, 42, 3), sep = ""))
+ atras$cuadricula <- as.character(atras$cuadricula)
+atras$cuadricula <- factor(atras$cuadricula , levels=unique(atras$cuadricula))
+
+p3 <- ggplot(atras, aes(x=cuadricula, y=DecibelProm1)) + 
+  geom_boxplot()
+p3
+
+```
+```{r}
+library(ggplot2)
+morn <- goodnoise
+goodnoise <- goodnoise %>%
+  select(horario,DecibelProm5)
+ morn$horario <- as.character(morn$horario)
+morn$horario <- factor(morn$horario , levels=unique(morn$horario))
+
+h1 <- ggplot(morn, aes(x=horario, y=DecibelProm5)) + 
+  geom_boxplot()
+h1
+```
+
+
